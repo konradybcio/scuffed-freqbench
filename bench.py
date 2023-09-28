@@ -23,6 +23,8 @@ POWER_SUPPLY_NODES = [
     "/sys/class/power_supply/battery",
     # Nexus 10
     "/sys/class/power_supply/ds2784-fuelgauge",
+    # Qualcomm PMIC_GLINK-enabled devices
+    "/sys/class/power_supply/qcom-battmgr-bat",
 ]
 # Some fuel gauges need current unit scaling
 POWER_CURRENT_FACTOR = 1
@@ -32,8 +34,13 @@ POWER_CURRENT_NODES = [
     # Standard µA node
     "current_now",
 ]
+POWER_POWER_NODES = [
+    # Standard uW node
+    "power_now",
+]
 # Full paths to final nodes
 POWER_CURRENT_NODE = None
+POWER_POWER_NODE = None
 POWER_VOLTAGE_NODE = None
 
 # Default power sampling intervals
@@ -98,6 +105,12 @@ for node in POWER_CURRENT_NODES:
         POWER_CURRENT_NODE = path
         break
 
+for node in POWER_POWER_NODES:
+    path = f"{POWER_SUPPLY}/{node}"
+    if os.path.exists(path):
+        POWER_POWER_NODE = path
+        break
+
 psy_name = os.readlink(POWER_SUPPLY)
 for fg_string, interval in POWER_SAMPLE_FG_DEFAULT_INTERVALS.items():
     if fg_string in psy_name:
@@ -131,10 +144,15 @@ def run_cmd(args):
         raise ValueError(f"Subprocess {args} failed with exit code {proc.returncode}:\n{proc.stdout}")
 
 def sample_power():
-    ma = int(read_file(POWER_CURRENT_NODE)) * POWER_CURRENT_FACTOR / 1000
     mv = int(read_file(POWER_VOLTAGE_NODE)) / 1000
 
-    mw = ma * mv / 1000
+    if POWER_POWER_NODE is not None:
+        mw = int(read_file(POWER_POWER_NODE)) / 1000
+        ma = mw / mv * 1000
+    else:
+        ma = int(read_file(POWER_CURRENT_NODE)) * POWER_CURRENT_FACTOR / 1000
+        mw = ma * mv / 1000
+
     return ma, mv, abs(mw)
 
 def start_power_thread(sample_interval=POWER_SAMPLE_INTERVAL):
@@ -290,11 +308,9 @@ def init_power():
     # Some PMICs may give unstable readings at this point
     pr_debug("Waiting for power usage to settle for initial current measurement")
     time.sleep(5)
-    # Maxim PMICs used on Exynos devices report current in mA, not µA
-    ref_current = int(read_file(POWER_CURRENT_NODE))
-    # Assumption: will never be below 1 mA
-    if abs(ref_current) <= 1000:
-        POWER_CURRENT_FACTOR = 1000
+    
+    ref_uv = int(read_file(POWER_VOLTAGE_NODE)) # uV
+    ref_current = 1_000_000 * int(read_file(POWER_POWER_NODE))/ref_uv
     pr_debug(f"Scaling current by {POWER_CURRENT_FACTOR}x (derived from initial sample: {ref_current})")
 
     print(f"Sampling power every {POWER_SAMPLE_INTERVAL} ms")
