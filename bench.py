@@ -130,9 +130,8 @@ _prealloc_samples = [-1] * PREALLOC_SLOTS
 _power_samples = _prealloc_samples
 
 def pr_debug(*args, **kwargs):
-    if __debug__:
-        kwargs["flush"] = True
-        print(*args, **kwargs)
+    kwargs["flush"] = True
+    print(*args, **kwargs)
 
 def run_cmd(args):
     pr_debug(f"Running command: {args}")
@@ -470,10 +469,6 @@ def main():
     pr_debug("Maxing housekeeping CPU frequency")
     max_hk_freq = max(get_cpu_freqs(HOUSEKEEPING_CPU))
     write_cpu(HOUSEKEEPING_CPU, "cpufreq/scaling_setspeed", str(max_hk_freq))
-
-    # OK to GC beyond this point as all the benchmarking is done
-    pr_debug("Enabling Python GC")
-    gc.enable()
 
     print()
     print("Benchmark finished!")
