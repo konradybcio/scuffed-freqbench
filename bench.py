@@ -44,7 +44,7 @@ POWER_POWER_NODE = None
 POWER_VOLTAGE_NODE = None
 
 # Default power sampling intervals
-POWER_SAMPLE_INTERVAL = 1000  # ms
+POWER_SAMPLE_INTERVAL = 5000  # retarded laptop firmware
 POWER_SAMPLE_FG_DEFAULT_INTERVALS = {
     # qgauge updates every 100 ms, but sampling also uses power, so do it conservatively
     "qpnp,qg": 250,
@@ -112,10 +112,10 @@ for node in POWER_POWER_NODES:
         break
 
 psy_name = os.readlink(POWER_SUPPLY)
-for fg_string, interval in POWER_SAMPLE_FG_DEFAULT_INTERVALS.items():
-    if fg_string in psy_name:
-        POWER_SAMPLE_INTERVAL = interval
-        break
+# for fg_string, interval in POWER_SAMPLE_FG_DEFAULT_INTERVALS.items():
+#     if fg_string in psy_name:
+#         POWER_SAMPLE_INTERVAL = interval
+#         break
 
 if len(sys.argv) > 1:
     override_interval = int(sys.argv[1])
@@ -413,7 +413,7 @@ def main():
             pr_debug("Running CoreMark...")
             thread = start_power_thread()
             start_time = time.time_ns()
-            cm_out = run_cmd(["taskset", "-c", f"{cpu}", "coremark", *COREMARK_PERFORMANCE_RUN])
+            cm_out = run_cmd(["taskset", "-c", f"{cpu}", "/home/konrad/coremark/coremark.exe", *COREMARK_PERFORMANCE_RUN])
             end_time = time.time_ns()
             power_samples = stop_power_thread(thread)
 
