@@ -412,7 +412,7 @@ def main():
             pr_debug("Running CoreMark...")
             thread = start_power_thread()
             start_time = time.time_ns()
-            cm_out = run_cmd(["taskset", "-c", f"{cpu}", "/home/konrad/coremark/coremark.exe", *COREMARK_PERFORMANCE_RUN])
+            cm_out = run_cmd(["taskset", "-c", f"{cpu}", "~/coremark/coremark.exe", *COREMARK_PERFORMANCE_RUN])
             end_time = time.time_ns()
             power_samples = stop_power_thread(thread)
 
